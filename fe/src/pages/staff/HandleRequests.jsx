@@ -1,282 +1,462 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Thêm useCallback
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 
 const API_URL = 'http://172.21.92.186:5000/api'; // Thay IP nếu cần
 
-// --- Hàm Format ---
-const formatTrangThai = (status) => {
-    const statusText = status?.replace('_', ' ') || 'Không xác định';
-    switch (status) {
-        case 'Mới': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{statusText}</span>;
-        case 'Đang_xử_lý': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{statusText}</span>;
-        case 'Hoàn_thành': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{statusText}</span>;
-        case 'Từ_chối': return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">{statusText}</span>;
-        default: return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{statusText}</span>;
-    }
-};
-
+// Hàm định dạng ngày giờ 
 const formatDateTime = (dateTimeString) => {
-    if (!dateTimeString) return '-';
-    try {
-        const date = new Date(dateTimeString);
-        if (isNaN(date.getTime())) {
-            return dateTimeString;
-        }
-        return date.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
-    } catch (e) { return dateTimeString; }
+  if (!dateTimeString) return '-';
+  try {
+    const date = new Date(dateTimeString);
+    if (isNaN(date.getTime())) return dateTimeString;
+    return date.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+  } catch (e) { return dateTimeString; }
 };
 
-// *** Hàm mới: Format tên người yêu cầu (đơn giản hóa) ***
-const formatSimpleRequesterName = (req) => {
-    // Nếu có tên cư dân thì hiển thị tên
-    if (req?.ten_cu_dan) {
-        return req.ten_cu_dan;
-    }
-    // Nếu không có tên cư dân VÀ id_cu_dan là null/undefined, thì là quản lý
-    else if (req?.id_cu_dan === null || req?.id_cu_dan === undefined) {
-        return "Quản lý tòa nhà";
-    }
-    // Nếu không có tên nhưng có id_cu_dan, hiển thị ID (dự phòng)
-    else if (req?.id_cu_dan) {
-         return `ID Cư dân: ${req.id_cu_dan}`;
-    }
-    // Trường hợp không xác định
-    return 'Không xác định';
+// Hàm định dạng trạng thái 
+const formatStatus = (status) => {
+  switch (status) {
+    case 'Chờ_tiếp_nhận':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Chờ tiếp nhận</span>;
+    case 'Đã_tiếp_nhận':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Đã tiếp nhận</span>;
+    case 'Đang_xử_lý':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Đang xử lý</span>;
+    case 'Hoàn_thành':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Hoàn thành</span>;
+    case 'Từ_chối':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Từ chối</span>;
+    case 'Hủy':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Hủy</span>;
+    default:
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{status?.replace(/_/g, ' ') || 'Không xác định'}</span>;
+  }
 };
 
+// Hàm định dạng mức độ ưu tiên
+const formatPriority = (priority) => {
+  switch (priority) {
+    case 'Cao':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Cao</span>;
+    case 'Trung_bình':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Trung bình</span>;
+    case 'Thấp':
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Thấp</span>;
+    default:
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{priority?.replace(/_/g, ' ') || 'Không xác định'}</span>;
+  }
+};
 
 function HandleRequests() {
   const [requests, setRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('Tất_cả');
+  const [searchTerm, setSearchTerm] = useState('');
   const [updateStatus, setUpdateStatus] = useState('');
-  const [reportContent, setReportContent] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isReporting, setIsReporting] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
   const [message, setMessage] = useState('');
+  const { user } = useContext(AuthContext);
 
-  // Fetch requests từ API - dùng useCallback
-  const fetchRequests = useCallback((statusFilter = 'Mới,Đang_xử_lý') => {
-    setLoading(true);
-    setError(null);
-    setMessage('');
-    // *** Vẫn dùng endpoint cũ theo yêu cầu ***
-    fetch(`${API_URL}/yeu-cau-dich-vu?status=${statusFilter}`)
-      .then(res => {
-        if (!res.ok) {
-          return res.json().then(errData => {
-              throw new Error(errData.error || `Lỗi ${res.status}`);
-          }).catch(() => {
-              throw new Error(`Lỗi ${res.status}`);
-          });
-        }
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          return res.json();
-        } else {
-          return res.text().then(text => { throw new Error("Phản hồi từ API không phải JSON: " + text.substring(0, 100)) });
-        }
-      })
-      .then(data => {
-        if (Array.isArray(data)) {
-            setRequests(data);
-        } else {
-            console.error("Dữ liệu API trả về không phải mảng:", data);
-            throw new Error("Định dạng dữ liệu không hợp lệ từ API.");
-        }
-      })
-      .catch(err => {
-        console.error("Lỗi fetch yêu cầu:", err);
-        setError(`Không thể tải yêu cầu: ${err.message || 'Lỗi không xác định'}`);
-        setRequests([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
+  // Fetch yêu cầu từ API
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    const fetchRequests = async () => {
+      // Comment phần kiểm tra quyền nhân viên để test không cần đăng nhập
+      /* if (!user || user.vai_tro !== 'NhanVien') {
+        setError('Bạn không có quyền truy cập chức năng này');
+        setLoading(false);
+        return;
+      } */
 
-  // Hàm xử lý cập nhật trạng thái
+      try {
+        setLoading(true);
+        setError('');
+        setMessage('');
+
+        // Gọi API lấy yêu cầu dịch vụ
+        const res = await fetch(`${API_URL}/yeu-cau-dich-vu`);
+        if (!res.ok) {
+          throw new Error(`Lỗi ${res.status}: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          throw new Error('Dữ liệu không hợp lệ');
+        }
+
+        // Sắp xếp theo ngày tạo mới nhất và độ ưu tiên
+        const sortedData = data.sort((a, b) => {
+          // Ưu tiên cao có thứ tự đầu
+          const priorityOrder = { 'Cao': 0, 'Trung_bình': 1, 'Thấp': 2 };
+          const statusOrder = { 'Chờ_tiếp_nhận': 0, 'Đã_tiếp_nhận': 1, 'Đang_xử_lý': 2, 'Hoàn_thành': 3, 'Từ_chối': 4, 'Hủy': 5 };
+
+          // Sắp xếp theo trạng thái (chưa xử lý trước)
+          if (statusOrder[a.trang_thai] !== statusOrder[b.trang_thai]) {
+            return statusOrder[a.trang_thai] - statusOrder[b.trang_thai];
+          }
+
+          // Nếu cùng trạng thái, sắp xếp theo độ ưu tiên
+          if (priorityOrder[a.muc_do_uu_tien] !== priorityOrder[b.muc_do_uu_tien]) {
+            return priorityOrder[a.muc_do_uu_tien] - priorityOrder[b.muc_do_uu_tien];
+          }
+
+          // Nếu cùng độ ưu tiên, sắp xếp theo ngày tạo (mới nhất trước)
+          return new Date(b.ngay_tao) - new Date(a.ngay_tao);
+        });
+
+        setRequests(sortedData);
+        setFilteredRequests(sortedData); // Ban đầu hiển thị tất cả
+      } catch (err) {
+        console.error('Lỗi khi lấy danh sách yêu cầu:', err);
+        setError(err.message || 'Đã xảy ra lỗi khi tải danh sách yêu cầu');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [user]);
+
+  // Lọc yêu cầu theo trạng thái và từ khóa tìm kiếm
+  useEffect(() => {
+    let results = requests;
+
+    // Lọc theo trạng thái
+    if (statusFilter !== 'Tất_cả') {
+      results = results.filter(req => req.trang_thai === statusFilter);
+    }
+
+    // Lọc theo từ khóa tìm kiếm
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      results = results.filter(req => 
+        req.tieu_de?.toLowerCase().includes(lowerSearchTerm) ||
+        req.mo_ta?.toLowerCase().includes(lowerSearchTerm) ||
+        req.ten_dich_vu?.toLowerCase().includes(lowerSearchTerm) ||
+        req.ten_cu_dan?.toLowerCase().includes(lowerSearchTerm) ||
+        String(req.id_yeu_cau).includes(lowerSearchTerm)
+      );
+    }
+
+    setFilteredRequests(results);
+  }, [statusFilter, searchTerm, requests]);
+
+  // Cập nhật trạng thái yêu cầu
   const handleUpdateStatus = async (requestId) => {
     if (!updateStatus) {
-      setMessage('Vui lòng chọn trạng thái mới.');
+      setMessage('Vui lòng chọn trạng thái mới');
       return;
     }
-    setIsUpdating(true);
+    
     setMessage('');
+    setUpdatingId(requestId);
+    
     try {
-      // *** Vẫn dùng endpoint cũ ***
       const response = await fetch(`${API_URL}/yeu-cau-dich-vu/${requestId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trang_thai: updateStatus }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw (result || new Error(`Lỗi ${response.status}`));
-      setMessage(`Cập nhật yêu cầu #${requestId} thành công!`);
-      setSelectedRequest(null);
-      fetchRequests();
-    } catch (err) {
-      console.error("Lỗi cập nhật yêu cầu:", err);
-      setMessage(`Cập nhật thất bại: ${err.error || err.message || 'Lỗi không xác định'}`);
-    } finally {
-      setIsUpdating(false);
-      setUpdateStatus('');
-    }
-  };
-
-   // Hàm xử lý thêm báo cáo
-  const handleAddReport = async (requestId) => {
-    if (!reportContent.trim()) {
-      setMessage('Vui lòng nhập nội dung báo cáo.');
-      return;
-    }
-    setIsReporting(true);
-    setMessage('');
-    try {
-      // *** Vẫn dùng endpoint cũ ***
-      const response = await fetch(`${API_URL}/yeu-cau-dich-vu/${requestId}/report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-            noi_dung: reportContent.trim(),
-            // id_nhan_vien: staffId // Nhớ gửi ID nhân viên nếu backend cần
-        }),
+          trang_thai: updateStatus,
+          id_nhan_vien: user?.id_nguoi_dung || 1 // Sử dụng ID mặc định khi test
+        })
       });
-      const result = await response.json();
-      if (!response.ok) throw (result || new Error(`Lỗi ${response.status}`));
-      setMessage(`Thêm báo cáo cho yêu cầu #${requestId} thành công!`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Lỗi ${response.status}`);
+      }
+      
+      // Cập nhật state
+      setRequests(prevRequests => 
+        prevRequests.map(req => 
+          req.id_yeu_cau === requestId 
+            ? { ...req, trang_thai: updateStatus, id_nhan_vien_phu_trach: user?.id_nguoi_dung || 1 } 
+            : req
+        )
+      );
+      
+      setMessage(`Cập nhật trạng thái yêu cầu #${requestId} thành công!`);
       setSelectedRequest(null);
-    } catch (err) {
-      console.error("Lỗi thêm báo cáo:", err);
-      setMessage(`Thêm báo cáo thất bại: ${err.error || err.message || 'Lỗi không xác định'}`);
+      setUpdateStatus('');
+    } catch (error) {
+      console.error('Lỗi khi cập nhật yêu cầu:', error);
+      setMessage(`Cập nhật thất bại: ${error.message}`);
     } finally {
-      setIsReporting(false);
-      setReportContent('');
+      setUpdatingId(null);
     }
   };
 
+  // Hiển thị khi đang tải
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <span className="ml-3 text-lg">Đang tải danh sách yêu cầu...</span>
+      </div>
+    );
+  }
 
-  // --- Render UI ---
-  if (loading) return <div className="p-4 text-center">Đang tải danh sách yêu cầu...</div>;
-  if (error) return <div className="p-4 text-center text-red-600 bg-red-100 border border-red-400 rounded">{error}</div>;
+  // Hiển thị khi có lỗi
+  if (error) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white p-6 rounded shadow-md">
-      {/* Giữ tiêu đề cũ */}
-      <h1 className="text-xl font-semibold mb-4">Xử lý Yêu cầu Dịch vụ</h1>
-      {message && <p className={`mb-4 text-sm p-3 rounded ${message.includes('thất bại') || message.includes('Lỗi') ? 'text-red-700 bg-red-100 border border-red-300' : 'text-green-700 bg-green-100 border border-green-300'}`}>{message}</p>}
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                {/* Giữ tên cột Người dùng */}
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người dùng</th>
-                {/* Giữ tên cột Dịch vụ */}
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dịch vụ/Tiêu đề</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày hẹn</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NV Phụ trách</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
-              </tr>
-            </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {Array.isArray(requests) && requests.map((req) => (
-              <tr key={req.id_yeu_cau}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{req.id_yeu_cau}</td>
-                {/* *** Sử dụng hàm format tên người yêu cầu đơn giản *** */}
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatSimpleRequesterName(req)}</td>
-                {/* Hiển thị tên dịch vụ hoặc tiêu đề */}
-                <td className="px-6 py-4 text-sm text-gray-500 break-words min-w-[150px]">{req.ten_dich_vu || req.tieu_de || 'Không có'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(req.ngay_tao)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(req.ngay_hen)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTrangThai(req.trang_thai)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.ten_nhan_vien || (req.id_nhan_vien_phu_trach ? `ID: ${req.id_nhan_vien_phu_trach}`: 'Chưa gán')}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    onClick={() => setSelectedRequest(req)}
-                    className="text-indigo-600 hover:text-indigo-900"
-                  >
-                    Xem/Xử lý
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {(!Array.isArray(requests) || requests.length === 0) && !loading && <p className="text-center py-4 text-gray-500">Không có yêu cầu nào phù hợp.</p>}
+    <div className="space-y-6">
+      {/* Tiêu đề trang */}
+      <div className="border-b border-gray-200 pb-4">
+        <h1 className="text-2xl font-bold text-gray-800">Xử lý Yêu cầu Dịch vụ</h1>
+        <p className="text-gray-600 mt-1">Quản lý và xử lý các yêu cầu dịch vụ từ cư dân và quản lý</p>
       </div>
 
-      {/* Modal chi tiết và cập nhật */}
+      {/* Thông báo */}
+      {message && (
+        <div className={`p-4 rounded-md ${message.includes('thất bại') || message.includes('Lỗi') ? 'bg-red-50 text-red-700 border-l-4 border-red-500' : 'bg-green-50 text-green-700 border-l-4 border-green-500'}`}>
+          {message}
+        </div>
+      )}
+
+      {/* Bộ lọc và tìm kiếm */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Lọc theo trạng thái */}
+          <div>
+            <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label>
+            <select
+              id="statusFilter"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="Tất_cả">Tất cả trạng thái</option>
+              <option value="Chờ_tiếp_nhận">Chờ tiếp nhận</option>
+              <option value="Đã_tiếp_nhận">Đã tiếp nhận</option>
+              <option value="Đang_xử_lý">Đang xử lý</option>
+              <option value="Hoàn_thành">Hoàn thành</option>
+              <option value="Từ_chối">Từ chối</option>
+              <option value="Hủy">Hủy</option>
+            </select>
+          </div>
+
+          {/* Tìm kiếm */}
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm:</label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                id="search"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Tìm theo ID, tiêu đề, tên cư dân..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Danh sách yêu cầu */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="font-semibold text-gray-800">Danh sách yêu cầu ({filteredRequests.length})</h2>
+        </div>
+
+        {filteredRequests.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Không có yêu cầu nào</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm || statusFilter !== 'Tất_cả' ? 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.' : 'Chưa có yêu cầu dịch vụ nào.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu đề</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dịch vụ</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người yêu cầu</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Độ ưu tiên</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredRequests.map(request => (
+                  <tr key={request.id_yeu_cau} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{request.id_yeu_cau}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="max-w-xs truncate">{request.tieu_de}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.ten_dich_vu || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.ten_cu_dan ? request.ten_cu_dan : 
+                       request.ten_quan_ly ? `${request.ten_quan_ly} (QL)` : 
+                       'Không xác định'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(request.ngay_tao)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatPriority(request.muc_do_uu_tien)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatStatus(request.trang_thai)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => setSelectedRequest(request)}
+                        className="text-blue-600 hover:text-blue-900 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded px-3 py-1"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal chi tiết yêu cầu */}
       {selectedRequest && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-center p-4">
-          <div className="relative bg-white p-6 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4">Chi tiết Yêu cầu #{selectedRequest.id_yeu_cau}</h2>
-            <button onClick={() => setSelectedRequest(null)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl leading-none font-semibold p-1">&times;</button>
-
-            {/* *** Cập nhật hiển thị thông tin chi tiết (đơn giản) *** */}
-            <div className="space-y-2 mb-4">
-                {/* Sử dụng hàm format đơn giản */}
-                <p><strong>Người yêu cầu:</strong> {formatSimpleRequesterName(selectedRequest)}</p>
-                {/* Chỉ hiển thị SĐT nếu là cư dân (có sdt_cu_dan) */}
-                {selectedRequest.sdt_cu_dan && <p><strong>SĐT:</strong> {selectedRequest.sdt_cu_dan}</p>}
-                {/* Giữ nguyên các thông tin khác */}
-                <p><strong>Dịch vụ/Tiêu đề:</strong> {selectedRequest.ten_dich_vu || selectedRequest.tieu_de || '(Không có)'}</p>
-                <p><strong>Mô tả:</strong> {selectedRequest.mo_ta || '(Không có)'}</p>
-                <p><strong>Ngày tạo:</strong> {formatDateTime(selectedRequest.ngay_tao)}</p>
-                <p><strong>Ngày hẹn:</strong> {formatDateTime(selectedRequest.ngay_hen)}</p>
-                <p><strong>Trạng thái hiện tại:</strong> {formatTrangThai(selectedRequest.trang_thai)}</p>
-                <p><strong>NV Phụ trách:</strong> {selectedRequest.ten_nhan_vien || (selectedRequest.id_nhan_vien_phu_trach ? `ID: ${selectedRequest.id_nhan_vien_phu_trach}`: 'Chưa gán')}</p>
-            </div>
-            <hr className="my-4"/>
-
-            {/* Cập nhật trạng thái (giữ nguyên) */}
-            <div className="mb-4">
-              <label htmlFor="statusUpdate" className="block text-sm font-medium text-gray-700 mb-1">Cập nhật trạng thái:</label>
-              <select
-                id="statusUpdate"
-                value={updateStatus}
-                onChange={(e) => setUpdateStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Chi tiết yêu cầu #{selectedRequest.id_yeu_cau}
+              </h2>
+              <button 
+                onClick={() => setSelectedRequest(null)} 
+                className="text-gray-400 hover:text-gray-600 focus:outline-none"
               >
-                <option value="">-- Chọn trạng thái mới --</option>
-                <option value="Đang_xử_lý">Đang xử lý</option>
-                <option value="Hoàn_thành">Hoàn thành</option>
-                <option value="Từ_chối">Từ chối</option>
-              </select>
-              <button
-                onClick={() => handleUpdateStatus(selectedRequest.id_yeu_cau)}
-                disabled={isUpdating || !updateStatus}
-                className={`mt-2 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${isUpdating || !updateStatus ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'}`}
-              >
-                {isUpdating ? 'Đang cập nhật...' : 'Cập nhật Trạng thái'}
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            {/* Thêm báo cáo (giữ nguyên) */}
-            <div>
-               <label htmlFor="reportContent" className="block text-sm font-medium text-gray-700 mb-1">Thêm báo cáo/ghi chú xử lý:</label>
-               <textarea
-                 id="reportContent"
-                 rows="3"
-                 value={reportContent}
-                 onChange={(e) => setReportContent(e.target.value)}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                 placeholder="Nhập nội dung báo cáo..."
-               ></textarea>
-               <button
-                 onClick={() => handleAddReport(selectedRequest.id_yeu_cau)}
-                 disabled={isReporting || !reportContent.trim()}
-                 className={`mt-2 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${isReporting || !reportContent.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'}`}
-               >
-                 {isReporting ? 'Đang gửi...' : 'Thêm Báo cáo'}
-               </button>
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              <div className="flex justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Trạng thái</p>
+                  <div className="mt-1">{formatStatus(selectedRequest.trang_thai)}</div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Mức độ ưu tiên</p>
+                  <div className="mt-1">{formatPriority(selectedRequest.muc_do_uu_tien)}</div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Người yêu cầu</p>
+                <p className="mt-1 font-medium">
+                  {selectedRequest.ten_cu_dan 
+                    ? `${selectedRequest.ten_cu_dan} (Cư dân)`
+                    : selectedRequest.ten_quan_ly
+                    ? `${selectedRequest.ten_quan_ly} (Quản lý)`
+                    : 'Không xác định'}
+                </p>
+                {selectedRequest.email_nguoi_yeu_cau && (
+                  <p className="text-sm text-gray-600">Email: {selectedRequest.email_nguoi_yeu_cau}</p>
+                )}
+                {selectedRequest.sdt_nguoi_yeu_cau && (
+                  <p className="text-sm text-gray-600">SĐT: {selectedRequest.sdt_nguoi_yeu_cau}</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Dịch vụ</p>
+                <p className="mt-1 font-medium">{selectedRequest.ten_dich_vu || 'Không xác định'}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Tiêu đề</p>
+                <p className="mt-1 font-medium">{selectedRequest.tieu_de}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Mô tả chi tiết</p>
+                <p className="mt-1 text-sm bg-gray-50 p-3 rounded">
+                  {selectedRequest.mo_ta || '(Không có mô tả)'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Ngày tạo</p>
+                  <p className="mt-1">{formatDateTime(selectedRequest.ngay_tao)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Cập nhật lần cuối</p>
+                  <p className="mt-1">{formatDateTime(selectedRequest.ngay_cap_nhat) || '-'}</p>
+                </div>
+              </div>
+
+              {/* Form cập nhật trạng thái */}
+              <div className="bg-gray-50 p-4 rounded-md mt-4">
+                <h3 className="font-medium text-gray-700 mb-3">Cập nhật trạng thái yêu cầu</h3>
+                <select
+                  value={updateStatus}
+                  onChange={(e) => setUpdateStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-3"
+                >
+                  <option value="">-- Chọn trạng thái mới --</option>
+                  <option value="Đã_tiếp_nhận">Đã tiếp nhận</option>
+                  <option value="Đang_xử_lý">Đang xử lý</option>
+                  <option value="Hoàn_thành">Hoàn thành</option>
+                  <option value="Từ_chối">Từ chối</option>
+                </select>
+
+                <button
+                  onClick={() => handleUpdateStatus(selectedRequest.id_yeu_cau)}
+                  disabled={updatingId === selectedRequest.id_yeu_cau || !updateStatus}
+                  className={`w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    updatingId === selectedRequest.id_yeu_cau || !updateStatus
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  }`}
+                >
+                  {updatingId === selectedRequest.id_yeu_cau ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Đang cập nhật...
+                    </span>
+                  ) : 'Cập nhật trạng thái'}
+                </button>
+              </div>
             </div>
-             {message && <p className={`mt-4 text-sm ${message.includes('thất bại') || message.includes('Lỗi') ? 'text-red-600' : 'text-green-600'}`}>{message}</p>}
           </div>
         </div>
       )}
