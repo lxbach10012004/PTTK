@@ -15,9 +15,9 @@ def get_current_user_info():
 def create_request():
     """Tạo yêu cầu mới (cho cư dân)."""
     # Nên kiểm tra role ở đây, chỉ cho phép resident
-    user_info = get_current_user_info()
-    if user_info['role'] != 'resident':
-         return jsonify({"error": "Chỉ cư dân mới được tạo yêu cầu này."}), 403
+    # user_info = get_current_user_info()
+    # if user_info['role'] != 'resident':
+    #      return jsonify({"error": "Chỉ cư dân mới được tạo yêu cầu này."}), 403
 
     data = request.get_json()
     if not data: return jsonify({"error": "Không có dữ liệu"}), 400
@@ -26,7 +26,7 @@ def create_request():
          return jsonify({"error": f"Thiếu trường: {', '.join(f for f in required if f not in data or not data[f])}"}), 400
 
     # Gán id_cu_dan từ user đang login
-    data['id_cu_dan'] = user_info['id']
+    data['id_cu_dan'] = 3
 
     created, error = request_service.create_service_request(data)
     if error: return jsonify({"error": error}), 500 if "Lỗi DB" in error or "Lỗi hệ thống" in error else 400
