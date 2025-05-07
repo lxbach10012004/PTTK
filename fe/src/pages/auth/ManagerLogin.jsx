@@ -15,7 +15,7 @@ function ManagerLogin() {
 
     try {
       // Gọi hàm login từ AuthContext với vai trò 'QuanLy'
-      const success = await login(email, password, "QuanLy");
+      const success = await login(email, password, "QuanLyToaNha");
 
       if (success) {
         navigate("/manager");
