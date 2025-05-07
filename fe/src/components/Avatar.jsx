@@ -4,8 +4,9 @@ export function Avatar({ src, alt = '', initials, className = '', square = false
   const baseClasses = "flex items-center justify-center overflow-hidden bg-gray-100 text-gray-500";
   const sizeClasses = "h-8 w-8";
   const shapeClasses = square ? "rounded-md" : "rounded-full";
+  const animationClasses = "transition-all duration-300 ease-in-out hover:shadow-md hover:scale-110";
   
-  const combinedClasses = `${baseClasses} ${sizeClasses} ${shapeClasses} ${className}`;
+  const combinedClasses = `${baseClasses} ${sizeClasses} ${shapeClasses} ${animationClasses} ${className}`;
   
   if (src) {
     return (

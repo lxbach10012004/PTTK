@@ -1,179 +1,199 @@
 // filepath: d:\course\PTTKHTTT\PTTK\fe\src\pages\staff\ViewFeedback.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 
 const API_URL = 'https://mmncb6j3-5000.asse.devtunnels.ms/api'; // Thay IP nếu cần
 
-// Hàm định dạng ngày giờ (có thể import từ utils)
+// Hàm định dạng trạng thái
+const formatStatus = (status) => {
+  switch (status) {
+    case "Mới":
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+          Mới
+        </span>
+      );
+    case "Đang_xử_lý":
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+          Đang xử lý
+        </span>
+      );
+    case "Đã_trả_lời":
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+          Đã trả lời
+        </span>
+      );
+    case "Đã_đóng":
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+          Đã đóng
+        </span>
+      );
+    default:
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+          {status}
+        </span>
+      );
+  }
+};
+
+// Hàm định dạng loại phản hồi
+const formatFeedbackType = (type) => {
+  if (!type) return "-";
+  return type.replace(/_/g, " ");
+};
+
+// Hàm định dạng ngày giờ
 const formatDateTime = (dateTimeString) => {
-    if (!dateTimeString) return '-';
-    try {
-        const date = new Date(dateTimeString);
-        if (isNaN(date.getTime())) return dateTimeString;
-        return date.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
-    } catch (e) { return dateTimeString; }
-};
-
-// Hàm định dạng trạng thái phản hồi
-const formatFeedbackStatus = (status) => {
-    switch (status) {
-        case 'Mới': return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Mới</span>;
-        case 'Đã_xem': return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Đã xem</span>;
-        case 'Đang_xử_lý': return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Đang xử lý</span>;
-        case 'Đã_xử_lý': return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Đã xử lý</span>;
-        default: return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{status?.replace('_', ' ') || 'Không xác định'}</span>;
-    }
-};
-
-// Hàm định dạng mức độ ưu tiên
-const formatPriority = (priority) => {
-    switch (priority) {
-        case 'Cao':
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Cao</span>;
-        case 'Trung_bình':
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Trung bình</span>;
-        case 'Thấp':
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Thấp</span>;
-        default:
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{priority?.replace('_', ' ') || 'Không xác định'}</span>;
-    }
+  if (!dateTimeString) return "-";
+  try {
+    const date = new Date(dateTimeString);
+    return date.toLocaleString("vi-VN", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  } catch (e) {
+    return dateTimeString;
+  }
 };
 
 function ViewFeedback() {
-  const [feedbackList, setFeedbackList] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterType, setFilterType] = useState("");
   const [selectedFeedback, setSelectedFeedback] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('Tất_cả');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [updateStatus, setUpdateStatus] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [message, setMessage] = useState('');
+  const [replyText, setReplyText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState(null);
+  const { user } = useContext(AuthContext);
 
-  // Fetch dữ liệu phản hồi từ API
+  // Lấy danh sách phản hồi
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    setMessage('');
-    
-    fetch(`${API_URL}/phan-hoi-cu-dan`) // API lấy tất cả phản hồi
-      .then(res => {
-        if (!res.ok) {
-          return res.json().then(errData => {
-            throw new Error(errData.error || `Lỗi ${res.status}`);
-          }).catch(() => {
-            throw new Error(`Lỗi ${res.status}`);
-          });
+    const fetchFeedbacks = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${API_URL}/phan-hoi`);
+        if (!response.ok) {
+          throw new Error("Không thể kết nối đến máy chủ");
         }
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          return res.json();
-        } else {
-          return res.text().then(text => { 
-            throw new Error("Phản hồi từ API không phải JSON: " + text.substring(0, 100));
-          });
-        }
-      })
-      .then(data => {
-        if (Array.isArray(data)) {
-          setFeedbackList(data);
-        } else {
-          console.error("Dữ liệu API trả về không phải mảng:", data);
-          throw new Error("Định dạng dữ liệu không hợp lệ từ API.");
-        }
-      })
-      .catch(err => {
-        console.error("Lỗi fetch phản hồi:", err);
-        setError(`Không thể tải danh sách phản hồi: ${err.message || 'Lỗi không xác định'}`);
-        setFeedbackList([]);
-      })
-      .finally(() => setLoading(false));
+        const data = await response.json();
+        setFeedbacks(data);
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách phản hồi:", err);
+        setError("Không thể tải danh sách phản hồi. Vui lòng thử lại sau.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedbacks();
   }, []);
 
-  // Hàm cập nhật trạng thái phản hồi
-  const handleUpdateStatus = async (feedbackId) => {
-    if (!updateStatus) {
-      setMessage('Vui lòng chọn trạng thái mới.');
-      return;
-    }
-    
-    setIsUpdating(true);
-    setMessage('');
-    
+  // Lọc phản hồi theo từ khóa, trạng thái và loại
+  const filteredFeedbacks = feedbacks.filter((feedback) => {
+    const statusMatch = filterStatus
+      ? feedback.trang_thai === filterStatus
+      : true;
+    const typeMatch = filterType ? feedback.loai_phan_hoi === filterType : true;
+    const searchMatch =
+      searchTerm.trim() === "" ||
+      (feedback.tieu_de &&
+        feedback.tieu_de.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (feedback.noi_dung &&
+        feedback.noi_dung.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (feedback.ten_cu_dan &&
+        feedback.ten_cu_dan.toLowerCase().includes(searchTerm.toLowerCase()));
+    return statusMatch && typeMatch && searchMatch;
+  });
+
+  // Lấy danh sách các loại phản hồi unique để hiển thị trong dropdown
+  const feedbackTypes = [
+    ...new Set(feedbacks.map((feedback) => feedback.loai_phan_hoi)),
+  ].filter(Boolean);
+
+  // Xem chi tiết phản hồi
+  const handleViewFeedback = (feedback) => {
+    setSelectedFeedback(feedback);
+    setReplyText(feedback.tra_loi || "");
+  };
+
+  // Đóng modal chi tiết
+  const handleCloseModal = () => {
+    setSelectedFeedback(null);
+    setReplyText("");
+  };
+
+  // Xử lý thay đổi trạng thái và trả lời phản hồi
+  const handleSubmitReply = async (e) => {
+    e.preventDefault();
+    if (!selectedFeedback) return;
+
+    setSubmitting(true);
+    setMessage(null);
     try {
-      const response = await fetch(`${API_URL}/phan-hoi-cu-dan/${feedbackId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trang_thai: updateStatus }),
-      });
-      
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || `Lỗi ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      // Cập nhật lại danh sách phản hồi
-      setFeedbackList(prevList => 
-        prevList.map(fb => fb.id_phan_hoi === feedbackId ? { ...fb, trang_thai: updateStatus } : fb)
+      const response = await fetch(
+        `${API_URL}/phan-hoi/${selectedFeedback.id_phan_hoi}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            trang_thai: "Đã_trả_lời",
+            tra_loi: replyText,
+            id_nhan_vien: user?.id_nguoi_dung || 1, // Mặc định ID nhân viên khi test
+          }),
+        }
       );
-      
-      setMessage(`Cập nhật trạng thái phản hồi #${feedbackId} thành công!`);
-      setSelectedFeedback(null);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Không thể cập nhật phản hồi");
+      }
+
+      // Cập nhật state
+      setFeedbacks((prevFeedbacks) =>
+        prevFeedbacks.map((fb) =>
+          fb.id_phan_hoi === selectedFeedback.id_phan_hoi
+            ? { ...fb, trang_thai: "Đã_trả_lời", tra_loi: replyText }
+            : fb
+        )
+      );
+
+      setMessage({
+        type: "success",
+        text: "Phản hồi đã được cập nhật thành công!",
+      });
+
+      // Đóng modal sau 2 giây
+      setTimeout(() => {
+        handleCloseModal();
+      }, 2000);
     } catch (err) {
-      console.error("Lỗi cập nhật trạng thái:", err);
-      setMessage(`Cập nhật thất bại: ${err.message || 'Lỗi không xác định'}`);
+      console.error("Lỗi khi cập nhật phản hồi:", err);
+      setMessage({
+        type: "error",
+        text:
+          err.message || "Không thể cập nhật phản hồi. Vui lòng thử lại sau.",
+      });
     } finally {
-      setIsUpdating(false);
-      setUpdateStatus('');
+      setSubmitting(false);
     }
   };
 
-  // Lọc phản hồi theo trạng thái và từ khóa tìm kiếm
-  const filteredFeedback = feedbackList.filter(fb => {
-    // Lọc theo trạng thái
-    if (statusFilter !== 'Tất_cả' && fb.trang_thai !== statusFilter) {
-      return false;
-    }
-    
-    // Lọc theo từ khóa tìm kiếm
-    if (searchTerm.trim() !== '') {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        fb.tieu_de?.toLowerCase().includes(searchLower) ||
-        fb.noi_dung?.toLowerCase().includes(searchLower) ||
-        fb.ten_cu_dan?.toLowerCase().includes(searchLower) ||
-        fb.id_phan_hoi?.toString().includes(searchLower)
-      );
-    }
-    
-    return true;
-  });
-
-  // Render UI khi đang tải
+  // Hiển thị khi đang tải
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        <span className="ml-3 text-lg">Đang tải danh sách phản hồi...</span>
-      </div>
-    );
-  }
-
-  // Render UI khi có lỗi
-  if (error) {
-    return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div>
+        <span className="ml-3 text-lg">Đang tải dữ liệu...</span>
       </div>
     );
   }
@@ -181,87 +201,130 @@ function ViewFeedback() {
   return (
     <div className="space-y-6">
       {/* Tiêu đề trang */}
-      <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-800">Xem Phản hồi Cư dân</h1>
-        <p className="text-gray-600 mt-1">Quản lý và xử lý các phản hồi, góp ý từ cư dân</p>
-      </div>
-      
-      {/* Thông báo */}
-      {message && (
-        <div className={`p-4 rounded-md ${message.includes('thất bại') || message.includes('Lỗi') ? 'bg-red-50 border-l-4 border-red-500' : 'bg-green-50 border-l-4 border-green-500'}`}>
-          <div className="flex">
-            <div className="flex-shrink-0">
-              {message.includes('thất bại') || message.includes('Lỗi') ? (
-                <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              )}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h1 className="text-xl font-semibold text-gray-800">
+            Quản lý Phản hồi & Góp ý
+          </h1>
+          <p className="text-gray-600 text-sm mt-1">
+            Xem và phản hồi các góp ý, khiếu nại từ cư dân
+          </p>
+        </div>
+
+        {/* Thống kê nhanh */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="text-sm text-gray-500 mb-1">Tổng phản hồi</div>
+              <div className="text-2xl font-semibold text-blue-700">
+                {feedbacks.length}
+              </div>
             </div>
-            <div className="ml-3">
-              <p className={`text-sm ${message.includes('thất bại') || message.includes('Lỗi') ? 'text-red-700' : 'text-green-700'}`}>{message}</p>
+
+            <div className="bg-yellow-50 rounded-lg p-4">
+              <div className="text-sm text-gray-500 mb-1">Đang chờ xử lý</div>
+              <div className="text-2xl font-semibold text-yellow-700">
+                {
+                  feedbacks.filter(
+                    (fb) =>
+                      fb.trang_thai === "Mới" || fb.trang_thai === "Đang_xử_lý"
+                  ).length
+                }
+              </div>
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="text-sm text-gray-500 mb-1">Đã trả lời</div>
+              <div className="text-2xl font-semibold text-green-700">
+                {
+                  feedbacks.filter((fb) => fb.trang_thai === "Đã_trả_lời")
+                    .length
+                }
+              </div>
             </div>
           </div>
         </div>
-      )}
-      
-      {/* Bộ lọc và tìm kiếm */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label>
-            <select
-              id="statusFilter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            >
-              <option value="Tất_cả">Tất cả trạng thái</option>
-              <option value="Mới">Mới</option>
-              <option value="Đã_xem">Đã xem</option>
-              <option value="Đang_xử_lý">Đang xử lý</option>
-              <option value="Đã_xử_lý">Đã xử lý</option>
-            </select>
-          </div>
-          
-          <div>
-            <label htmlFor="searchTerm" className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm:</label>
+
+        {/* Bộ lọc và tìm kiếm */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5 text-gray-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <input
                 type="text"
-                id="searchTerm"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-rose-500 focus:border-rose-500 sm:text-sm"
+                placeholder="Tìm kiếm phản hồi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm theo tiêu đề, nội dung, tên cư dân..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               />
+            </div>
+
+            <div>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-md"
+              >
+                <option value="">Tất cả loại phản hồi</option>
+                {feedbackTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {formatFeedbackType(type)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-md"
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="Mới">Mới</option>
+                <option value="Đang_xử_lý">Đang xử lý</option>
+                <option value="Đã_trả_lời">Đã trả lời</option>
+                <option value="Đã_đóng">Đã đóng</option>
+              </select>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Danh sách phản hồi */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-800">Danh sách phản hồi ({filteredFeedback.length})</h2>
-        </div>
-
-        {filteredFeedback.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        {/* Danh sách phản hồi */}
+        {filteredFeedbacks.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
+              />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Không có phản hồi nào</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              Không tìm thấy phản hồi nào
+            </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc.' : 'Chưa có phản hồi nào từ cư dân.'}
+              {searchTerm || filterStatus || filterType
+                ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm."
+                : "Chưa có phản hồi nào từ cư dân."}
             </p>
           </div>
         ) : (
@@ -269,32 +332,79 @@ function ViewFeedback() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cư dân</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu đề</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày gửi</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ưu tiên</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    ID
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Tiêu đề
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Người gửi
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Loại
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Ngày gửi
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Trạng thái
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Thao tác
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredFeedback.map((fb) => (
-                  <tr key={fb.id_phan_hoi} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{fb.id_phan_hoi}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fb.ten_cu_dan || `ID: ${fb.id_cu_dan}`}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      <div className="max-w-xs truncate">{fb.tieu_de}</div>
+                {filteredFeedbacks.map((feedback) => (
+                  <tr key={feedback.id_phan_hoi} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      #{feedback.id_phan_hoi}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(fb.ngay_gui)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriority(fb.muc_do_uu_tien)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatFeedbackStatus(fb.trang_thai)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="max-w-xs truncate">
+                        {feedback.tieu_de}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {feedback.ten_cu_dan || "Không xác định"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatFeedbackType(feedback.loai_phan_hoi)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDateTime(feedback.ngay_tao)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {formatStatus(feedback.trang_thai)}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <button
-                        onClick={() => setSelectedFeedback(fb)}
-                        className="text-blue-600 hover:text-blue-900 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded px-3 py-1"
+                        onClick={() => handleViewFeedback(feedback)}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
                       >
-                        Xem chi tiết
+                        <span>Xem & Trả lời</span>
                       </button>
                     </td>
                   </tr>
@@ -308,91 +418,179 @@ function ViewFeedback() {
       {/* Modal chi tiết phản hồi */}
       {selectedFeedback && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-center p-4">
-          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
-              <h2 className="text-lg font-semibold text-gray-800">Phản hồi #{selectedFeedback.id_phan_hoi}</h2>
-              <button 
-                onClick={() => setSelectedFeedback(null)} 
+              <h2 className="text-lg font-semibold text-gray-800">
+                Chi tiết phản hồi #{selectedFeedback.id_phan_hoi}
+              </h2>
+              <button
+                onClick={handleCloseModal}
                 className="text-gray-400 hover:text-gray-600 focus:outline-none"
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-6">
-              {/* Chi tiết phản hồi */}
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Trạng thái</p>
-                    <div className="mt-1">{formatFeedbackStatus(selectedFeedback.trang_thai)}</div>
+            <div className="p-6 space-y-5">
+              {/* Thông báo */}
+              {message && (
+                <div
+                  className={`p-4 rounded-md ${
+                    message.type === "error"
+                      ? "bg-red-50 text-red-700"
+                      : "bg-green-50 text-green-700"
+                  }`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              <div className="flex justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Trạng thái</p>
+                  <div className="mt-1">
+                    {formatStatus(selectedFeedback.trang_thai)}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Mức độ ưu tiên</p>
-                    <div className="mt-1">{formatPriority(selectedFeedback.muc_do_uu_tien)}</div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Loại phản hồi</p>
+                  <div className="mt-1 font-medium">
+                    {formatFeedbackType(selectedFeedback.loai_phan_hoi)}
                   </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Cư dân</p>
-                  <p className="mt-1 font-medium">{selectedFeedback.ten_cu_dan || `ID: ${selectedFeedback.id_cu_dan}`}</p>
-                  {selectedFeedback.email_cu_dan && <p className="text-sm text-gray-600">Email: {selectedFeedback.email_cu_dan}</p>}
-                  {selectedFeedback.sdt_cu_dan && <p className="text-sm text-gray-600">SĐT: {selectedFeedback.sdt_cu_dan}</p>}
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Tiêu đề</p>
-                  <p className="mt-1 font-medium">{selectedFeedback.tieu_de}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Nội dung phản hồi</p>
-                  <p className="mt-1 text-sm bg-gray-50 p-3 rounded">{selectedFeedback.noi_dung || '(Không có nội dung)'}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Ngày gửi</p>
-                  <p className="mt-1">{formatDateTime(selectedFeedback.ngay_gui)}</p>
                 </div>
               </div>
 
-              {/* Cập nhật trạng thái */}
-              <div className="bg-gray-50 p-4 rounded-md">
-                <h3 className="font-medium text-gray-700 mb-3">Cập nhật trạng thái phản hồi</h3>
-                <select
-                  value={updateStatus}
-                  onChange={(e) => setUpdateStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-3"
-                >
-                  <option value="">-- Chọn trạng thái mới --</option>
-                  <option value="Đã_xem">Đã xem</option>
-                  <option value="Đang_xử_lý">Đang xử lý</option>
-                  <option value="Đã_xử_lý">Đã xử lý</option>
-                </select>
-                <button
-                  onClick={() => handleUpdateStatus(selectedFeedback.id_phan_hoi)}
-                  disabled={isUpdating || !updateStatus}
-                  className={`w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                    isUpdating || !updateStatus
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                  }`}
-                >
-                  {isUpdating ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Đang cập nhật...
-                    </span>
-                  ) : 'Cập nhật trạng thái'}
-                </button>
+              <div>
+                <p className="text-sm text-gray-500">Người gửi</p>
+                <p className="mt-1 font-medium">
+                  {selectedFeedback.ten_cu_dan || "Không xác định"}
+                </p>
+                {selectedFeedback.email_cu_dan && (
+                  <p className="text-sm text-gray-600">
+                    Email: {selectedFeedback.email_cu_dan}
+                  </p>
+                )}
+                {selectedFeedback.sdt_cu_dan && (
+                  <p className="text-sm text-gray-600">
+                    SĐT: {selectedFeedback.sdt_cu_dan}
+                  </p>
+                )}
               </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Tiêu đề</p>
+                <p className="mt-1 font-medium">{selectedFeedback.tieu_de}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Nội dung phản hồi</p>
+                <div className="mt-1 bg-gray-50 p-4 rounded-md text-sm">
+                  {selectedFeedback.noi_dung || "(Không có nội dung)"}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Ngày gửi</p>
+                  <p className="mt-1">
+                    {formatDateTime(selectedFeedback.ngay_tao)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Cập nhật lần cuối</p>
+                  <p className="mt-1">
+                    {formatDateTime(selectedFeedback.ngay_cap_nhat) || "-"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Form trả lời */}
+              <form onSubmit={handleSubmitReply} className="mt-6">
+                <div className="mb-4">
+                  <label
+                    htmlFor="reply"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Trả lời phản hồi
+                  </label>
+                  <textarea
+                    id="reply"
+                    rows="4"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500 sm:text-sm"
+                    placeholder="Nhập nội dung trả lời..."
+                    required={selectedFeedback.trang_thai !== "Đã_trả_lời"}
+                    disabled={
+                      submitting || selectedFeedback.trang_thai === "Đã_đóng"
+                    }
+                  ></textarea>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-50"
+                  >
+                    Đóng
+                  </button>
+
+                  {selectedFeedback.trang_thai !== "Đã_đóng" && (
+                    <button
+                      type="submit"
+                      disabled={submitting || !replyText.trim()}
+                      className={`px-4 py-2 rounded-md text-white transition-colors ${
+                        submitting || !replyText.trim()
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-50"
+                      }`}
+                    >
+                      {submitting ? (
+                        <span className="flex items-center">
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Đang gửi...
+                        </span>
+                      ) : (
+                        "Gửi trả lời"
+                      )}
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
           </div>
         </div>

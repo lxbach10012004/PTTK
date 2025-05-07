@@ -35,10 +35,10 @@ function StaffLogin() {
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <img
           alt="Phần Mềm Quản Lý Chung Cư"
-          src="/src/assets/uet_logo.png"
+          src="/src/assets/uet_logo.svg"
           className="mx-auto h-30 w-auto"
         />
-        <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-gray-900">
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
           Đăng nhập Nhân viên
         </h2>
       </div>
@@ -48,7 +48,7 @@ function StaffLogin() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-900"
+              className="block text-base font-medium text-gray-900"
             >
               Email
             </label>
@@ -61,7 +61,7 @@ function StaffLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600 sm:text-sm"
+                className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
                 placeholder="staff@example.com"
               />
             </div>
@@ -71,7 +71,7 @@ function StaffLogin() {
             <div className="flex items-center justify-between">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-900"
+                className="block text-base font-medium text-gray-900"
               >
                 Mật khẩu
               </label>
@@ -85,7 +85,7 @@ function StaffLogin() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600 sm:text-sm"
+                className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
                 placeholder="********"
               />
             </div>
@@ -93,27 +93,27 @@ function StaffLogin() {
 
           {error && (
             <div className="mt-2">
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-base text-red-600">{error}</p>
             </div>
           )}
 
           <div>
             <button
               type="submit"
-              className="flex w-full justify-center rounded-md bg-rose-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
+              className="flex w-full justify-center rounded-md bg-rose-500 px-3 py-2 text-base font-semibold text-white shadow-sm hover:bg-rose-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
             >
               Đăng nhập
             </button>
           </div>
         </form>
 
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-10 text-center text-base text-gray-500">
           Không phải nhân viên?{" "}
           <Link
             to="/"
             className="font-semibold text-rose-500 hover:text-rose-400"
           >
-            Quay lại trang chọn vai trò
+            Quay lại trang chủ
           </Link>
         </p>
       </div>
