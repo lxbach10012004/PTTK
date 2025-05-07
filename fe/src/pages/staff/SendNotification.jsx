@@ -1,7 +1,7 @@
 // filepath: d:\course\PTTKHTTT\PTTK\fe\src\pages\staff\SendNotification.jsx
 import React, { useState } from 'react';
 
-const API_URL = 'http://172.21.92.186:5000/api'; // Thay IP nếu cần
+const API_URL = 'https://mmncb6j3-5000.asse.devtunnels.ms/api'; // Thay IP nếu cần
 
 function SendNotification() {
   const [tieuDe, setTieuDe] = useState('');

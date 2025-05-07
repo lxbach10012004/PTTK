@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
-const API_URL = 'http://172.21.92.186:5000/api'; // Thay IP nếu cần
+const API_URL = 'https://mmncb6j3-5000.asse.devtunnels.ms/api'; // Thay IP nếu cần
 
 // Hàm định dạng trạng thái
 const formatTrangThai = (status) => {

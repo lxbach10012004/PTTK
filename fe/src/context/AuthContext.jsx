@@ -25,7 +25,7 @@ function AuthProvider({ children }) {
     console.log(`Attempting login for: ${email} as ${expectedRole} (direct password check)`);
     setLoading(true);
     try {
-      const response = await fetch('http://172.21.92.186:5000/api/auth/login', { // Sử dụng IP và Port của backend Flask
+      const response = await fetch('https://mmncb6j3-5000.asse.devtunnels.ms/api/auth/login', { // Sử dụng IP và Port của backend Flask
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

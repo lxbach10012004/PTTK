@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 
-const API_URL = 'http://172.21.92.186:5000/api';
+const API_URL = 'https://mmncb6j3-5000.asse.devtunnels.ms/api';
 
 function ResidentServiceRequest() {
   const [availableServices, setAvailableServices] = useState([]);

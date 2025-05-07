@@ -5,7 +5,7 @@ import { AuthContext } from '../../context/AuthContext';
 // --- Bỏ hàm giả lập ---
 // const fetchResidentInfo = async (residentId) => { ... };
 
-const API_URL = 'http://172.21.92.186:5000/api'; // Thay IP nếu cần
+const API_URL = 'https://mmncb6j3-5000.asse.devtunnels.ms/api'; // Thay IP nếu cần
 
 // Hàm định dạng giới tính
 const formatGender = (gender) => {
