@@ -133,7 +133,7 @@ function CreateServiceBill() {
                 onChange={(e) => setSelectedRequestId(e.target.value)}
                 required
                 disabled={loadingRequests || completedRequests.length === 0}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500 disabled:bg-gray-100 text-sm"
               >
                 <option value="">{
                   loadingRequests 
@@ -152,8 +152,8 @@ function CreateServiceBill() {
             
             {/* Hiển thị chi tiết yêu cầu được chọn */}
             {selectedRequestInfo && (
-              <div className="bg-blue-50 p-4 rounded-md">
-                <h3 className="font-medium text-lg text-blue-800">{selectedRequestInfo.tieu_de}</h3>
+              <div className="bg-rose-50 p-4 rounded-md">
+                <h3 className="font-medium text-lg text-rose-800">{selectedRequestInfo.tieu_de}</h3>
                 <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-gray-600">Dịch vụ:</p>
@@ -192,14 +192,14 @@ function CreateServiceBill() {
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="mt-6 flex items-center space-x-3">
               <button
                 type="submit"
                 disabled={isSubmitting || loadingRequests || !selectedRequestId}
                 className={`px-6 py-2.5 font-medium rounded-md shadow-sm text-white ${
                   isSubmitting || loadingRequests || !selectedRequestId
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    : 'bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500'
                 }`}
               >
                 {isSubmitting ? (

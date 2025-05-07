@@ -128,7 +128,8 @@ function ResidentServiceRequest() {
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="col-span-2">
+            {/* Chọn dịch vụ */}
+            <div>
               <label
                 htmlFor="service"
                 className="block text-sm font-medium text-gray-700 mb-1"
@@ -179,6 +180,7 @@ function ResidentServiceRequest() {
               )}
             </div>
 
+            {/* Ngày giờ hẹn */}
             <div>
               <label
                 htmlFor="ngayHen"
@@ -196,7 +198,8 @@ function ResidentServiceRequest() {
               />
             </div>
 
-            <div>
+            {/* Mô tả thêm (chiếm cả dòng) */}
+            <div className="md:col-span-2">
               <label
                 htmlFor="moTa"
                 className="block text-sm font-medium text-gray-700 mb-1"
@@ -237,7 +240,7 @@ function ResidentServiceRequest() {
               }`}
             >
               {isSubmitting ? (
-                <span className="flex items-center">
+                <span className="mt-6 flex items-center space-x-3">
                   <svg
                     className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
                     xmlns="http://www.w3.org/2000/svg"

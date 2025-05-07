@@ -25,8 +25,8 @@ function ManageServices() {
     don_vi_tinh: "",
     don_gia: "",
     mo_ta: "",
-    trang_thai: 1,
-    hien_thi_cho_cu_dan: 0,
+    trang_thai: 1, // 1: Hoạt động, 0: Không hoạt động
+    hien_thi_cho_cu_dan: 0, // 1: Có, 0: Không (Nội bộ)
   });
 
   // Fetch services from API
@@ -35,18 +35,10 @@ function ManageServices() {
     setError("");
     try {
       const response = await fetch(`${API_URL}/dich-vu`);
-      if (!response.ok) {
-        const errData = await response
-          .json()
-          .catch(() => ({ error: "Không thể đọc phản hồi lỗi" }));
-        throw new Error(
-          errData.error || `Lỗi ${response.status}: Không tải được dịch vụ`
-        );
-      }
+      if (!response.ok) throw new Error("Không tải được danh sách dịch vụ");
       const data = await response.json();
       setServices(data);
     } catch (err) {
-      console.error("Lỗi fetch dịch vụ:", err);
       setError(err.message);
       setServices([]);
     } finally {
@@ -59,13 +51,19 @@ function ManageServices() {
   }, [fetchServices]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? (checked ? 1 : 0) : value,
+    }));
   };
 
   const handleSelectChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: parseInt(value) }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: parseInt(value),
+    }));
   };
 
   const resetForm = () => {
@@ -94,27 +92,38 @@ function ManageServices() {
       : `${API_URL}/dich-vu`;
     const method = isEditing ? "PUT" : "POST";
 
+    // Prepare data, convert types
+    const dataToSend = {
+      ...formData,
+      don_gia: formData.don_gia ? parseFloat(formData.don_gia) : 0,
+      trang_thai: parseInt(formData.trang_thai),
+      hien_thi_cho_cu_dan: parseInt(formData.hien_thi_cho_cu_dan),
+    };
+    if (!dataToSend.ten_dich_vu || !dataToSend.don_vi_tinh) {
+      setError("Tên dịch vụ và Đơn vị tính là bắt buộc.");
+      setLoading(false);
+      return;
+    }
+    if (isNaN(dataToSend.don_gia)) {
+      setError("Đơn giá phải là một số.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(url, {
-        method,
+        method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       });
-
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(
-          result.error || `Lỗi ${isEditing ? "cập nhật" : "thêm"} dịch vụ`
-        );
+        throw new Error(result.error || `Lỗi ${isEditing ? "cập nhật" : "thêm"} dịch vụ`);
       }
-
-      setMessage(
-        `Dịch vụ đã được ${isEditing ? "cập nhật" : "thêm"} thành công!`
-      );
+      setMessage(result.message || `Dịch vụ đã được ${isEditing ? "cập nhật" : "thêm"} thành công.`);
       resetForm();
       fetchServices();
     } catch (err) {
-      console.error(`Lỗi ${isEditing ? "cập nhật" : "thêm"} dịch vụ:`, err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -126,46 +135,34 @@ function ManageServices() {
     setCurrentService(service);
     setFormData({
       ten_dich_vu: service.ten_dich_vu,
+      don_gia: service.don_gia || '',
       don_vi_tinh: service.don_vi_tinh,
-      don_gia: service.don_gia,
-      mo_ta: service.mo_ta || "",
-      trang_thai: service.trang_thai,
-      hien_thi_cho_cu_dan: service.hien_thi_cho_cu_dan,
+      mo_ta: service.mo_ta || '',
+      trang_thai: service.trang_thai, // 0 hoặc 1
+      hien_thi_cho_cu_dan: service.hien_thi_cho_cu_dan, // 0 hoặc 1
     });
-    setMessage("");
-    setError("");
+    setMessage('');
+    setError('');
     window.scrollTo(0, 0);
   };
 
   const handleDelete = async (serviceId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn ẩn dịch vụ này?")) {
+    if (!window.confirm(`Bạn có chắc chắn muốn ẩn dịch vụ ID ${serviceId}? Dịch vụ này sẽ không thể được chọn cho yêu cầu mới.`)) {
       return;
     }
-
+    setMessage('');
+    setError('');
     setLoading(true);
-    setError("");
-    setMessage("");
-
     try {
-      // Thực hiện ẩn dịch vụ (thay đổi trạng thái)
-      const response = await fetch(
-        `${API_URL}/dich-vu/${serviceId}/toggle-status`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ trang_thai: 0 }),
-        }
-      );
-
+      // API uses DELETE method, but backend service performs an update (soft delete)
+      const response = await fetch(`${API_URL}/dich-vu/${serviceId}`, { method: 'DELETE' });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || "Không thể ẩn dịch vụ");
+        throw new Error(result.error || 'Lỗi ẩn dịch vụ');
       }
-
-      setMessage("Đã ẩn dịch vụ thành công!");
+      setMessage(result.message || 'Ẩn dịch vụ thành công.');
       fetchServices();
     } catch (err) {
-      console.error("Lỗi khi ẩn dịch vụ:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -271,12 +268,11 @@ function ManageServices() {
                 name="trang_thai"
                 id="trang_thai"
                 value={formData.trang_thai}
-                onChange={handleInputChange}
+                onChange={handleSelectChange}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
               >
-                <option value="Hoạt_động">Hoạt động</option>
-                <option value="Tạm_ngưng">Tạm ngưng</option>
-                <option value="Ngừng_cung_cấp">Ngừng cung cấp</option>
+                <option value={1}>Hoạt động</option>
+                <option value={0}>Không hoạt động</option>
               </select>
             </div>
             <div className="md:col-span-2">
@@ -387,14 +383,12 @@ function ManageServices() {
                       <td className="px-4 py-2 text-sm">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            service.trang_thai === "Hoạt_động"
+                            service.trang_thai === 1
                               ? "bg-green-100 text-green-800"
-                              : service.trang_thai === "Tạm_ngưng"
-                              ? "bg-yellow-100 text-yellow-800"
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {service.trang_thai?.replace("_", " ")}
+                          {service.trang_thai === 1 ? "Hoạt động" : "Không hoạt động"}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-sm whitespace-nowrap">

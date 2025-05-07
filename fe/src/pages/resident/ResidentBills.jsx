@@ -353,12 +353,6 @@ function ResidentBills() {
                 >
                   Trạng thái
                 </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Chi tiết
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -384,32 +378,6 @@ function ResidentBills() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     {formatPaymentStatus(bill.trang_thai)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => {
-                        /* Thêm xử lý xem chi tiết tại đây */
-                      }}
-                      className="text-blue-600 hover:text-blue-900 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
-                    >
-                      <div className="inline-flex items-center">
-                        <span>Xem</span>
-                        <svg
-                          className="ml-1 h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </div>
-                    </button>
                   </td>
                 </tr>
               ))}

@@ -29,6 +29,13 @@ function ManagerDashboard() {
   // Lấy thông tin quản lý từ user trong context
   const managerInfo = user || { ho_ten: "Quản lý" };
 
+  // Hàm tách tên khỏi vai trò trong ngoặc đơn
+  const extractName = (fullString) => {
+    if (!fullString) return "Quản lý";
+    // Tách tên khỏi phần trong ngoặc đơn (nếu có)
+    return fullString.split(" (")[0];
+  };
+
   const handleLogout = () => {
     logout();
   };
@@ -115,26 +122,6 @@ function ManagerDashboard() {
       ),
     },
     {
-      path: "/manager/manage-contracts",
-      label: "Quản lý hợp đồng",
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      ),
-    },
-    {
       path: "/manager/manage-apartments",
       label: "Quản lý căn hộ",
       icon: (
@@ -180,6 +167,26 @@ function ManagerDashboard() {
         </svg>
       ),
     },
+    {
+      path: "/manager/manage-contracts",
+      label: "Quản lý hợp đồng",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      ),
+    }
   ];
 
   const isActive = (path) => {
@@ -235,17 +242,12 @@ function ManagerDashboard() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-medium text-gray-900">
-                            {managerInfo.ho_ten}
-                          </p>
-                          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                            Quản lý
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 text-left">
-                          Ban quản trị tòa nhà
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          {extractName(managerInfo.ho_ten)}
                         </p>
+                        <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full w-fit">
+                          Ban quản lý
+                        </span>
                       </div>
                     </div>
                   </DropdownButton>
@@ -327,7 +329,7 @@ function ManagerDashboard() {
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
-              Chào mừng, {managerInfo.ho_ten}
+              Chào mừng, {extractName(managerInfo.ho_ten)}
             </h1>
             <p className="mt-2 text-gray-600">
               Chào mừng bạn đến với hệ thống Quản lý Chung cư. Vui lòng chọn một

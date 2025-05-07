@@ -30,6 +30,14 @@ function ResidentDashboard() {
   // Lấy thông tin cư dân từ user trong context
   const residentInfo = user || { ho_ten: "Cư dân" };
 
+  // Hàm tách tên khỏi vai trò trong ngoặc đơn
+  const extractName = (fullString) => {
+    if (!fullString) return "Cư dân"; // Trả về "Cư dân" nếu không có tên
+    // Tách tên khỏi phần trong ngoặc đơn (nếu có)
+    return fullString.split(" (")[0];
+  };
+
+
   const handleLogout = () => {
     logout();
   };
@@ -210,17 +218,12 @@ function ResidentDashboard() {
                         />
                       </div>
                       <div className="flex flex-col">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-medium text-gray-900">
-                            {residentInfo.ho_ten}
-                          </p>
-                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                            Cư dân
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 text-left">
-                          Căn hộ {residentInfo.can_ho || "---"}
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          {extractName(residentInfo.ho_ten)}
                         </p>
+                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full w-fit">
+                          Cư dân
+                        </span>
                       </div>
                     </div>
                   </DropdownButton>
@@ -303,7 +306,7 @@ function ResidentDashboard() {
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
-              Chào mừng, {residentInfo.ho_ten}
+              Chào mừng, {extractName(residentInfo.ho_ten)}
             </h1>
             <p className="mt-2 text-gray-600">
               Chào mừng bạn đến với hệ thống quản lý Chung cư. Vui lòng chọn một

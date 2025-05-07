@@ -186,7 +186,7 @@ function ManageApartments() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">
             {isEditing
-              ? `Sửa Căn hộ: ${currentService?.ten_dich_vu}`
+              ? `Sửa Căn hộ: ${currentApartment?.ma_can}`
               : "Thêm Căn hộ mới"}
           </h2>
         </div>

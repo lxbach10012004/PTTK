@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
-const API_URL = 'https://mmncb6j3-5000.asse.devtunnels.ms/api'; // Thay IP nếu cần
+const API_URL = "https://mmncb6j3-5000.asse.devtunnels.ms/api"; // Thay IP nếu cần
 
 // Hàm định dạng ngày giờ
 const formatDateTime = (dateTimeString) => {
@@ -21,16 +21,10 @@ const formatDateTime = (dateTimeString) => {
 // Hàm định dạng trạng thái
 const formatStatus = (status) => {
   switch (status) {
-    case "Chờ_tiếp_nhận":
+    case "Mới":
       return (
         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-          Chờ tiếp nhận
-        </span>
-      );
-    case "Đã_tiếp_nhận":
-      return (
-        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-          Đã tiếp nhận
+          Mới
         </span>
       );
     case "Đang_xử_lý":
@@ -49,12 +43,6 @@ const formatStatus = (status) => {
       return (
         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
           Từ chối
-        </span>
-      );
-    case "Hủy":
-      return (
-        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-          Hủy
         </span>
       );
     default:
@@ -103,6 +91,7 @@ function HandleRequests() {
   const [error, setError] = useState("");
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [statusFilter, setStatusFilter] = useState("Tất_cả");
+  const [priorityFilter, setPriorityFilter] = useState("Tất_cả");
   const [searchTerm, setSearchTerm] = useState("");
   const [updateStatus, setUpdateStatus] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
@@ -179,13 +168,18 @@ function HandleRequests() {
     fetchRequests();
   }, [user]);
 
-  // Lọc yêu cầu theo trạng thái và từ khóa tìm kiếm
+  // Lọc yêu cầu theo trạng thái, độ ưu tiên và từ khóa tìm kiếm
   useEffect(() => {
     let results = requests;
 
     // Lọc theo trạng thái
     if (statusFilter !== "Tất_cả") {
       results = results.filter((req) => req.trang_thai === statusFilter);
+    }
+
+    // Lọc theo độ ưu tiên
+    if (priorityFilter !== "Tất_cả") {
+      results = results.filter((req) => req.muc_do_uu_tien === priorityFilter);
     }
 
     // Lọc theo từ khóa tìm kiếm
@@ -202,7 +196,7 @@ function HandleRequests() {
     }
 
     setFilteredRequests(results);
-  }, [statusFilter, searchTerm, requests]);
+  }, [statusFilter, priorityFilter, searchTerm, requests]);
 
   // Cập nhật trạng thái yêu cầu
   const handleUpdateStatus = async (requestId) => {
@@ -259,7 +253,7 @@ function HandleRequests() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-rose-500"></div>
         <span className="ml-3 text-lg">Đang tải danh sách yêu cầu...</span>
       </div>
     );
@@ -308,32 +302,24 @@ function HandleRequests() {
         {/* Thống kê nhanh */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-rose-50 rounded-lg p-4">
-              <div className="text-sm text-gray-500 mb-1">Tổng yêu cầu</div>
-              <div className="text-2xl font-semibold text-rose-700">
-                {requests.length}
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 rounded-lg p-4">
-              <div className="text-sm text-gray-500 mb-1">Đang chờ xử lý</div>
-              <div className="text-2xl font-semibold text-yellow-700">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="text-sm text-gray-500 mb-1">Mới</div>
+              <div className="text-2xl font-semibold text-blue-700">
                 {
-                  requests.filter(
-                    (req) =>
-                      req.trang_thai === "Chờ_tiếp_nhận" ||
-                      req.trang_thai === "Đã_tiếp_nhận"
-                  ).length
+                  requests.filter((req) => req.trang_thai === "Mới")
+                    .length
                 }
               </div>
             </div>
 
-            <div className="bg-blue-50 rounded-lg p-4">
+            <div className="bg-yellow-50 rounded-lg p-4">
               <div className="text-sm text-gray-500 mb-1">Đang xử lý</div>
-              <div className="text-2xl font-semibold text-blue-700">
+              <div className="text-2xl font-semibold text-yellow-700">
                 {
-                  requests.filter((req) => req.trang_thai === "Đang_xử_lý")
-                    .length
+                  requests.filter(
+                    (req) =>
+                      req.trang_thai === "Đang_xử_lý"
+                  ).length
                 }
               </div>
             </div>
@@ -345,6 +331,14 @@ function HandleRequests() {
                   requests.filter((req) => req.trang_thai === "Hoàn_thành")
                     .length
                 }
+              </div>
+            </div>
+
+            <div className="bg-rose-50 rounded-lg p-4">
+              <div className="text-sm text-gray-500 mb-1">Từ chối</div>
+              <div className="text-2xl font-semibold text-rose-700">
+                {requests.filter((req) => req.trang_thai === "Từ chối")
+                    .length}
               </div>
             </div>
           </div>
@@ -366,28 +360,48 @@ function HandleRequests() {
 
       {/* Bộ lọc và tìm kiếm */}
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Lọc theo độ ưu tiên */}
+          <div>
+            <label
+              htmlFor="priorityFilter"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Độ ưu tiên
+            </label>
+            <select
+              id="priorityFilter"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+            >
+              <option value="Tất_cả">Tất cả</option>
+              <option value="Cao">Cao</option>
+              <option value="Trung_bình">Trung bình</option>
+              <option value="Thấp">Thấp</option>
+            </select>
+          </div>
+
           {/* Lọc theo trạng thái */}
           <div>
             <label
               htmlFor="statusFilter"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Lọc theo trạng thái:
+              Trạng thái
             </label>
             <select
               id="statusFilter"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="Tất_cả">Tất cả trạng thái</option>
-              <option value="Chờ_tiếp_nhận">Chờ tiếp nhận</option>
-              <option value="Đã_tiếp_nhận">Đã tiếp nhận</option>
+              <option value="Tất_cả">Tất cả</option>
+              <option value="Mới">Mới</option>
               <option value="Đang_xử_lý">Đang xử lý</option>
               <option value="Hoàn_thành">Hoàn thành</option>
               <option value="Từ_chối">Từ chối</option>
-              <option value="Hủy">Hủy</option>
             </select>
           </div>
 
@@ -397,7 +411,7 @@ function HandleRequests() {
               htmlFor="search"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Tìm kiếm:
+              Tìm kiếm
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -417,7 +431,7 @@ function HandleRequests() {
               <input
                 type="text"
                 id="search"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
                 placeholder="Tìm theo ID, tiêu đề, tên cư dân..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -430,9 +444,7 @@ function HandleRequests() {
       {/* Danh sách yêu cầu */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-800">
-            Danh sách yêu cầu ({filteredRequests.length})
-          </h2>
+          <h2 className="font-semibold text-gray-800">Danh sách yêu cầu</h2>
         </div>
 
         {filteredRequests.length === 0 ? (
@@ -545,7 +557,7 @@ function HandleRequests() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => setSelectedRequest(request)}
-                        className="text-blue-600 hover:text-blue-900 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded px-3 py-1"
+                        className="text-rose-600 hover:text-rose-900 hover:underline focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 rounded px-3 py-1"
                       >
                         Xem chi tiết
                       </button>
@@ -639,21 +651,23 @@ function HandleRequests() {
 
               <div>
                 <p className="text-sm text-gray-500">Mô tả chi tiết</p>
-                <p className="mt-1 text-sm bg-gray-50 p-3 rounded">
-                  {selectedRequest.mo_ta || "(Không có mô tả)"}
-                </p>
+                <div className="mt-1">
+                  <p className="text-sm bg-gray-50 p-3 rounded whitespace-pre-line">
+                    {selectedRequest.mo_ta || "(Không có mô tả)"}
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Ngày tạo</p>
-                  <p className="mt-1">
+                  <p className="mt-1 font-medium">
                     {formatDateTime(selectedRequest.ngay_tao)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Cập nhật lần cuối</p>
-                  <p className="mt-1">
+                  <p className="mt-1 font-medium">
                     {formatDateTime(selectedRequest.ngay_cap_nhat) || "-"}
                   </p>
                 </div>
@@ -667,10 +681,9 @@ function HandleRequests() {
                 <select
                   value={updateStatus}
                   onChange={(e) => setUpdateStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500 mb-3"
                 >
                   <option value="">-- Chọn trạng thái mới --</option>
-                  <option value="Đã_tiếp_nhận">Đã tiếp nhận</option>
                   <option value="Đang_xử_lý">Đang xử lý</option>
                   <option value="Hoàn_thành">Hoàn thành</option>
                   <option value="Từ_chối">Từ chối</option>

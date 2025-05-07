@@ -214,7 +214,7 @@ function ManageResidents() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">
             {isEditing
-              ? `Sửa thông tin Cư dân: ${currentService?.ten_dich_vu}`
+              ? `Sửa thông tin Cư dân${currentResident?.ho_ten ? ': ' + currentResident.ho_ten : ''}`
               : "Thêm Cư dân mới"}
           </h2>
         </div>

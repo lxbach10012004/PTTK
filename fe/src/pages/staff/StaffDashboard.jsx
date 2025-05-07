@@ -30,6 +30,14 @@ function StaffDashboard() {
   // Lấy thông tin nhân viên từ user trong context
   const staffInfo = user || { ho_ten: "Nhân viên" };
 
+  // Hàm tách tên khỏi vai trò trong ngoặc đơn
+  const extractName = (fullString) => {
+    if (!fullString) return "Nhân viên";
+    // Tách tên khỏi phần trong ngoặc đơn (nếu có)
+    return fullString.split(" (")[0];
+  };
+
+
   const handleLogout = () => {
     logout();
   };
@@ -213,18 +221,13 @@ function StaffDashboard() {
                           className="ring-2 ring-rose-500"
                         />
                       </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-medium text-gray-900">
-                            {staffInfo.ho_ten}
-                          </p>
-                          <span className="bg-rose-100 text-rose-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                            Nhân viên
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 text-left">
-                          Nhân viên phụ trách
+                      <div className="flex flex-col">
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          {extractName(staffInfo.ho_ten)}
                         </p>
+                        <span className="bg-rose-100 text-rose-800 text-xs font-medium px-2 py-0.5 rounded-full w-fit">
+                          Nhân viên
+                        </span>
                       </div>
                     </div>
                   </DropdownButton>
@@ -306,7 +309,7 @@ function StaffDashboard() {
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
-              Chào mừng, {staffInfo.ho_ten}
+              Chào mừng, {extractName(staffInfo.ho_ten)}
             </h1>
             <p className="mt-2 text-gray-600">
               Chào mừng bạn đến với hệ thống Quản lý Chung cư. Vui lòng chọn một

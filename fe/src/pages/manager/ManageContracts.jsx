@@ -27,8 +27,87 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+// Danh sách hợp đồng mẫu (hardcode)
+const sampleContracts = [
+  {
+    id_hop_dong: 1,
+    ma_hop_dong: "HD001",
+    id_can_ho: 1,
+    ma_can_ho: "A101",
+    id_cu_dan: 3,
+    ten_cu_dan: "Nguyễn Văn A",
+    ngay_bat_dau: "2023-01-01",
+    ngay_ket_thuc: "2025-12-31",
+    tien_thue: 20000000,
+    tien_coc: 0,
+    loai_hop_dong: "Thuê dài hạn",
+    trang_thai: "Hiệu_lực",
+    ghi_chu: null,
+  },
+  {
+    id_hop_dong: 2,
+    ma_hop_dong: "HD002",
+    id_can_ho: 2,
+    ma_can_ho: "A102",
+    id_cu_dan: 4,
+    ten_cu_dan: "Trần Thị B",
+    ngay_bat_dau: "2023-03-15",
+    ngay_ket_thuc: "2026-03-14",
+    tien_thue: 15000000,
+    tien_coc: 0,
+    loai_hop_dong: "Thuê dài hạn",
+    trang_thai: "Hiệu_lực",
+    ghi_chu: null,
+  },
+  {
+    id_hop_dong: 3,
+    ma_hop_dong: "HD003",
+    id_can_ho: 3,
+    ma_can_ho: "A103",
+    id_cu_dan: 5,
+    ten_cu_dan: "Lê Văn C",
+    ngay_bat_dau: "2023-06-01",
+    ngay_ket_thuc: "2024-05-31",
+    tien_thue: 25000000,
+    tien_coc: 0,
+    loai_hop_dong: "Thuê ngắn hạn",
+    trang_thai: "Hết_hạn",
+    ghi_chu: null,
+  },
+  {
+    id_hop_dong: 4,
+    ma_hop_dong: "HD004",
+    id_can_ho: 4,
+    ma_can_ho: "A104",
+    id_cu_dan: 6,
+    ten_cu_dan: "Phạm Thị D",
+    ngay_bat_dau: "2024-02-10",
+    ngay_ket_thuc: "2026-02-09",
+    tien_thue: 22000000,
+    tien_coc: 0,
+    loai_hop_dong: "Thuê dài hạn",
+    trang_thai: "Hiệu_lực",
+    ghi_chu: null,
+  },
+  {
+    id_hop_dong: 5,
+    ma_hop_dong: "HD005",
+    id_can_ho: 5,
+    ma_can_ho: "A105",
+    id_cu_dan: 7,
+    ten_cu_dan: "Đỗ Văn E",
+    ngay_bat_dau: "2023-10-20",
+    ngay_ket_thuc: "2025-10-19",
+    tien_thue: 18000000,
+    tien_coc: 0,
+    loai_hop_dong: "Thuê dài hạn",
+    trang_thai: "Hiệu_lực",
+    ghi_chu: null,
+  },
+];
+
 function ManageContracts() {
-  const [contracts, setContracts] = useState([]);
+  const [contracts, setContracts] = useState(sampleContracts);
   const [apartments, setApartments] = useState([]);
   const [residents, setResidents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,27 +134,14 @@ function ManageContracts() {
     setError("");
     setMessage("");
     try {
-      const [conRes, aptRes, resRes] = await Promise.all([
-        fetch(`${API_URL}/hop-dong`), // Endpoint lấy hợp đồng
+      const [aptRes, resRes] = await Promise.all([
         fetch(`${API_URL}/can-ho`), // Lấy căn hộ để chọn
         fetch(`${API_URL}/nguoi-dung?vai_tro=CuDan`), // Lấy cư dân để chọn
       ]);
 
-      let conData = [],
-        aptData = [],
+      let aptData = [],
         resData = [];
 
-      if (conRes.ok) {
-        conData = await conRes.json();
-      } else {
-        const errData = await conRes
-          .json()
-          .catch(() => ({ error: "Không thể đọc phản hồi lỗi" }));
-        setError(
-          (prev) =>
-            prev + ` Lỗi tải hợp đồng: ${errData.error || conRes.statusText}.`
-        );
-      }
       if (aptRes.ok) {
         aptData = await aptRes.json();
       } else {
@@ -99,7 +165,6 @@ function ManageContracts() {
         );
       }
 
-      setContracts(conData);
       setApartments(aptData);
       setResidents(resData);
     } catch (err) {
@@ -107,7 +172,6 @@ function ManageContracts() {
       setError(
         (prev) => prev + ` Lỗi mạng hoặc xử lý dữ liệu: ${err.message}.`
       );
-      setContracts([]);
       setApartments([]);
       setResidents([]);
     } finally {
@@ -389,7 +453,7 @@ function ManageContracts() {
                 htmlFor="tien_thue"
                 className="block text-sm font-medium text-gray-700"
               >
-                Tiền thuê (VNĐ/tháng) <span className="text-red-500">*</span>
+                Tiền đặt cọc (VNĐ) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -523,7 +587,7 @@ function ManageContracts() {
                       Thời hạn
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                      Tiền thuê
+                      Tiền đặt cọc
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                       Trạng thái
@@ -552,7 +616,7 @@ function ManageContracts() {
                         </div>
                       </td>
                       <td className="px-4 py-2 text-sm font-medium">
-                        {formatCurrency(contract.tien_thue)}/tháng
+                        {formatCurrency(contract.tien_thue)}
                       </td>
                       <td className="px-4 py-2 text-sm">
                         <span
@@ -560,8 +624,8 @@ function ManageContracts() {
                             contract.trang_thai === "Hiệu_lực"
                               ? "bg-green-100 text-green-800"
                               : contract.trang_thai === "Hết_hạn"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
                           }`}
                         >
                           {contract.trang_thai?.replace("_", " ")}

@@ -118,7 +118,7 @@ function CreateMaintenanceBill() {
                 onChange={(e) => setSelectedResidentId(e.target.value)}
                 required
                 disabled={loadingResidents || residents.length === 0}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500 disabled:bg-gray-100 text-sm"
               >
                 <option value="">{loadingResidents ? "Đang tải..." : (residents.length === 0 ? "-- Không có cư dân --" : "-- Chọn cư dân --")}</option>
                 {residents.map((res) => (
@@ -142,7 +142,7 @@ function CreateMaintenanceBill() {
                   required
                   min="1"
                   step="1000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500 text-sm"
                   placeholder="Ví dụ: 1500000"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -165,7 +165,7 @@ function CreateMaintenanceBill() {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500 text-sm"
                 placeholder="Ví dụ: Phí quản lý tháng 5/2025"
               />
             </div>
@@ -177,14 +177,14 @@ function CreateMaintenanceBill() {
             </div>
           )}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex items-center space-x-3">
             <button
               type="submit"
               disabled={isSubmitting || loadingResidents || !selectedResidentId || !amount}
               className={`px-6 py-2.5 font-medium rounded-md shadow-sm text-white ${
                 isSubmitting || loadingResidents || !selectedResidentId || !amount
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  : 'bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500'
               }`}
             >
               {isSubmitting ? (

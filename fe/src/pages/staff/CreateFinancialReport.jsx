@@ -139,7 +139,7 @@ function CreateFinancialReport() {
                 value={formData.tieu_de}
                 onChange={handleInputChange}
                 required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
 
@@ -153,7 +153,7 @@ function CreateFinancialReport() {
                 value={formData.ky_bao_cao}
                 onChange={handleInputChange}
                 required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
               >
                 <option value="">Chọn kỳ báo cáo</option>
                 <option value="Thang">Tháng</option>
@@ -173,7 +173,7 @@ function CreateFinancialReport() {
                 value={formData.thoi_gian_bat_dau}
                 onChange={handleInputChange}
                 required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
 
@@ -188,7 +188,7 @@ function CreateFinancialReport() {
                 value={formData.thoi_gian_ket_thuc}
                 onChange={handleInputChange}
                 required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
 
@@ -202,19 +202,19 @@ function CreateFinancialReport() {
                 rows="3"
                 value={formData.ghi_chu}
                 onChange={handleInputChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
               ></textarea>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex items-center space-x-3">
             <button
               type="submit"
               disabled={isSubmitting}
               className={`px-6 py-2.5 font-medium rounded-md shadow-sm text-white ${
                 isSubmitting
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  : 'bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500'
               }`}
             >
               {isSubmitting ? (
@@ -229,72 +229,6 @@ function CreateFinancialReport() {
             </button>
           </div>
         </form>
-      </div>
-
-      {/* Danh sách báo cáo */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Báo cáo đã tạo</h2>
-        </div>
-
-        <div className="p-6">
-          {loading && !reports.length ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">Đang tải...</span>
-            </div>
-          ) : null}
-
-          {!loading && reports.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Chưa có báo cáo nào.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tiêu đề</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Kỳ báo cáo</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tổng thu</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tổng chi</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {reports.map((report) => (
-                    <tr key={report.id_bao_cao} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm">{report.id_bao_cao}</td>
-                      <td className="px-4 py-2 text-sm font-medium">{report.tieu_de}</td>
-                      <td className="px-4 py-2 text-sm">{report.ky_bao_cao}</td>
-                      <td className="px-4 py-2 text-sm">
-                        {formatDate(report.thoi_gian_bat_dau)} - {formatDate(report.thoi_gian_ket_thuc)}
-                      </td>
-                      <td className="px-4 py-2 text-sm font-medium text-green-600">{formatCurrency(report.tong_thu)}</td>
-                      <td className="px-4 py-2 text-sm font-medium text-red-600">{formatCurrency(report.tong_chi)}</td>
-                      <td className="px-4 py-2 text-sm whitespace-nowrap">
-                        <button
-                          onClick={() => handleViewDetails(report)}
-                          className="text-blue-600 hover:text-blue-800 mr-3 focus:outline-none focus:underline"
-                        >
-                          Chi tiết
-                        </button>
-                        <button
-                          onClick={() => handleExport(report.id_bao_cao)}
-                          className="text-blue-600 hover:text-blue-800 focus:outline-none focus:underline"
-                        >
-                          Xuất PDF
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Thông tin bổ sung */}
@@ -397,7 +331,7 @@ function CreateFinancialReport() {
             <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
               <button
                 onClick={() => handleExport(selectedReport.id_bao_cao)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
               >
                 Xuất PDF
               </button>

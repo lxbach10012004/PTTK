@@ -191,7 +191,7 @@ function ManageStaff() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">
             {isEditing
-              ? `Sửa thông tin Nhân viên: ${currentService?.ten_dich_vu}`
+              ? `Sửa thông tin Nhân viên${currentStaff?.ho_ten ? ': ' + currentStaff.ho_ten : ''}`
               : "Thêm Nhân viên mới"}
           </h2>
         </div>
