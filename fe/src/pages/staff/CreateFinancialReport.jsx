@@ -6,79 +6,43 @@ const API_URL = 'https://mmncb6j3-5000.asse.devtunnels.ms/api'; // Thay IP nếu
 
 function CreateFinancialReport() {
   const { user } = useContext(AuthContext);
+  const [tieuDe, setTieuDe] = useState('');
+  const [moTa, setMoTa] = useState('');
+  const [tongThu, setTongThu] = useState('');
+  const [tongChi, setTongChi] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    tieu_de: '',
-    ky_bao_cao: '',
-    thoi_gian_bat_dau: '',
-    thoi_gian_ket_thuc: '',
-    ghi_chu: '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [reports, setReports] = useState([]);
+  const [message, setMessage] = useState('');
   const [selectedReport, setSelectedReport] = useState(null);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Validate form
-    if (!formData.tieu_de.trim()) {
-      setError('Vui lòng nhập tiêu đề báo cáo');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!tieuDe.trim() || tongThu === '' || tongChi === '' || parseFloat(tongThu) < 0 || parseFloat(tongChi) < 0) {
+      setMessage('Vui lòng nhập tiêu đề và số tiền thu/chi hợp lệ (>= 0).');
       return;
     }
-
-    if (!formData.ky_bao_cao) {
-      setError('Vui lòng chọn kỳ báo cáo');
-      return;
-    }
-
-    if (!formData.thoi_gian_bat_dau || !formData.thoi_gian_ket_thuc) {
-      setError('Vui lòng nhập thời gian báo cáo');
-      return;
-    }
-
-    const thuChiData = {
-      ...formData,
-      id_nguoi_tao: user?.id_nguoi_dung,
-    };
-
     setIsSubmitting(true);
-    setError('');
-    setSuccess('');
-
+    setMessage('');
     try {
       const response = await fetch(`${API_URL}/bao-cao/thu-chi`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(thuChiData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tieu_de: tieuDe.trim(),
+          mo_ta: moTa.trim() || null,
+          tong_thu: parseFloat(tongThu),
+          tong_chi: parseFloat(tongChi),
+          id_nguoi_tao: user?.id_nguoi_dung,
+        }),
       });
-
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Không thể tạo báo cáo');
-      }
-
-      setSuccess('Đã tạo báo cáo thu chi thành công!');
-      setFormData({
-        tieu_de: '',
-        ky_bao_cao: '',
-        thoi_gian_bat_dau: '',
-        thoi_gian_ket_thuc: '',
-        ghi_chu: '',
-      });
+      if (!response.ok) throw result;
+      setMessage(`Tạo báo cáo #${result.report?.id_bao_cao_thu_chi || ''} thành công!`);
+      setTieuDe('');
+      setMoTa('');
+      setTongThu('');
+      setTongChi('');
     } catch (err) {
-      console.error('Lỗi khi tạo báo cáo:', err);
-      setError(err.message || 'Đã xảy ra lỗi khi tạo báo cáo');
+      setMessage(`Tạo báo cáo thất bại: ${err.error || 'Lỗi không xác định'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +70,7 @@ function CreateFinancialReport() {
       {/* Tiêu đề trang */}
       <div className="border-b border-gray-200 pb-4">
         <h1 className="text-2xl font-bold text-gray-800">Tạo Báo cáo Tài chính</h1>
-        <p className="text-gray-600 mt-1">Tạo báo cáo tài chính theo kỳ</p>
+        <p className="text-gray-600 mt-1">Lập báo cáo tổng hợp thu chi tài chính cho tòa nhà</p>
       </div>
 
       {/* Form tạo báo cáo */}
@@ -114,118 +78,82 @@ function CreateFinancialReport() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Thông tin báo cáo</h2>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6">
-          {error && (
-            <div className="mb-4 p-4 rounded-md bg-red-50 border border-red-200">
-              <p className="text-sm text-red-600">{error}</p>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {message && (
+            <div className={`p-3 rounded-md text-sm ${message.includes('thất bại') || message.includes('Lỗi') ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'}`}>
+              {message}
             </div>
           )}
-          {success && (
-            <div className="mb-4 p-4 rounded-md bg-green-50 border border-green-200">
-              <p className="text-sm text-green-600">{success}</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="col-span-2">
-              <label htmlFor="tieu_de" className="block text-sm font-medium text-gray-700">
-                Tiêu đề báo cáo <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="tieu_de"
-                id="tieu_de"
-                value={formData.tieu_de}
-                onChange={handleInputChange}
-                required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="ky_bao_cao" className="block text-sm font-medium text-gray-700">
-                Kỳ báo cáo <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="ky_bao_cao"
-                id="ky_bao_cao"
-                value={formData.ky_bao_cao}
-                onChange={handleInputChange}
-                required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
-              >
-                <option value="">Chọn kỳ báo cáo</option>
-                <option value="Thang">Tháng</option>
-                <option value="Quy">Quý</option>
-                <option value="Nam">Năm</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="thoi_gian_bat_dau" className="block text-sm font-medium text-gray-700">
-                Thời gian bắt đầu <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="thoi_gian_bat_dau"
-                id="thoi_gian_bat_dau"
-                value={formData.thoi_gian_bat_dau}
-                onChange={handleInputChange}
-                required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="thoi_gian_ket_thuc" className="block text-sm font-medium text-gray-700">
-                Thời gian kết thúc <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="thoi_gian_ket_thuc"
-                id="thoi_gian_ket_thuc"
-                value={formData.thoi_gian_ket_thuc}
-                onChange={handleInputChange}
-                required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <label htmlFor="ghi_chu" className="block text-sm font-medium text-gray-700">
-                Ghi chú
-              </label>
-              <textarea
-                name="ghi_chu"
-                id="ghi_chu"
-                rows="3"
-                value={formData.ghi_chu}
-                onChange={handleInputChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-rose-500 focus:border-rose-500"
-              ></textarea>
-            </div>
+          <div>
+            <label htmlFor="tieuDe" className="block text-sm font-medium text-gray-700 mb-1">
+              Tiêu đề <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="tieuDe"
+              value={tieuDe}
+              onChange={(e) => setTieuDe(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+              placeholder="Ví dụ: Báo cáo thu chi tháng 5/2025"
+            />
           </div>
-
-          <div className="mt-6 flex items-center space-x-3">
+          <div>
+            <label htmlFor="moTa" className="block text-sm font-medium text-gray-700 mb-1">
+              Mô tả (tùy chọn)
+            </label>
+            <textarea
+              id="moTa"
+              rows="3"
+              value={moTa}
+              onChange={(e) => setMoTa(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+              placeholder="Mô tả chi tiết nội dung báo cáo..."
+            ></textarea>
+          </div>
+          <div>
+            <label htmlFor="tongThu" className="block text-sm font-medium text-gray-700 mb-1">
+              Tổng thu (VNĐ) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              id="tongThu"
+              value={tongThu}
+              onChange={(e) => setTongThu(e.target.value)}
+              required
+              min="0"
+              step="1000"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label htmlFor="tongChi" className="block text-sm font-medium text-gray-700 mb-1">
+              Tổng chi (VNĐ) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              id="tongChi"
+              value={tongChi}
+              onChange={(e) => setTongChi(e.target.value)}
+              required
+              min="0"
+              step="1000"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+              placeholder="0"
+            />
+          </div>
+          <div>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className={`px-6 py-2.5 font-medium rounded-md shadow-sm text-white ${
-                isSubmitting
+              disabled={isSubmitting || !tieuDe || tongThu === '' || tongChi === ''}
+              className={`w-full py-2 px-4 font-semibold rounded-md shadow text-white ${
+                isSubmitting || !tieuDe || tongThu === '' || tongChi === ''
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500'
               }`}
             >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Đang tạo...
-                </span>
-              ) : 'Tạo báo cáo'}
+              {isSubmitting ? 'Đang tạo...' : 'Tạo Báo cáo'}
             </button>
           </div>
         </form>
@@ -245,13 +173,13 @@ function CreateFinancialReport() {
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">Thông tin về báo cáo tài chính</h3>
+                <h3 className="text-sm font-medium text-blue-800">Hướng dẫn lập báo cáo thu chi</h3>
                 <div className="mt-2 text-sm text-blue-700">
                   <ul className="list-disc pl-5 space-y-1">
-                    <li>Báo cáo tài chính được tạo theo kỳ (tháng, quý, năm)</li>
-                    <li>Đảm bảo chọn đúng khoảng thời gian để báo cáo chính xác</li>
-                    <li>Hệ thống sẽ tự động tổng hợp các khoản thu chi trong khoảng thời gian được chọn</li>
-                    <li>Có thể xuất báo cáo dưới dạng PDF để lưu trữ hoặc in ấn</li>
+                    <li>Nhập tiêu đề rõ ràng cho báo cáo (ví dụ: "Báo cáo thu chi tháng 5/2025").</li>
+                    <li>Ghi chú mô tả nội dung báo cáo nếu cần.</li>
+                    <li>Nhập tổng số tiền thu và tổng số tiền chi thực tế của kỳ báo cáo.</li>
+                    <li>Kiểm tra kỹ số liệu trước khi xác nhận tạo báo cáo.</li>
                   </ul>
                 </div>
               </div>

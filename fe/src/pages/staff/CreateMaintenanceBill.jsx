@@ -215,13 +215,13 @@ function CreateMaintenanceBill() {
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">Thông tin về hóa đơn phí quản lý/bảo trì</h3>
+                <h3 className="text-sm font-medium text-blue-800">Hướng dẫn lập hóa đơn quản lý/bảo trì</h3>
                 <div className="mt-2 text-sm text-blue-700">
                   <ul className="list-disc pl-5 space-y-1">
-                    <li>Phí quản lý/bảo trì thường được thu hàng tháng theo quy định của tòa nhà</li>
-                    <li>Đối với các phí bất thường (phí sửa chữa, bảo trì đột xuất), cần có mô tả rõ ràng</li>
-                    <li>Đảm bảo chọn đúng cư dân cần lập hóa đơn và số tiền chính xác</li>
-                    <li>Sau khi tạo hóa đơn, hệ thống sẽ tự động gửi thông báo đến cư dân</li>
+                    <li>Chọn đúng cư dân cần lập hóa đơn bảo trì.</li>
+                    <li>Nhập số tiền bảo trì theo quy định hoặc thực tế phát sinh.</li>
+                    <li>Mô tả nên ghi rõ nội dung bảo trì (ví dụ: "Bảo trì thang máy tháng 5/2025").</li>
+                    <li>Sau khi tạo, hóa đơn sẽ được gửi đến cư dân và lưu vào hệ thống.</li>
                   </ul>
                 </div>
               </div>

@@ -293,7 +293,7 @@ function ViewFeedback() {
               <option value="Tất_cả">Tất cả trạng thái</option>
               <option value="Mới">Mới</option>
               <option value="Đã_xem">Đã xem</option>
-              <option value="Đã_xử_lý">Đã trả lời</option>
+              <option value="Đã_trả_lời">Đã trả lời</option>
             </select>
           </div>
           <div>
@@ -528,8 +528,7 @@ function ViewFeedback() {
                 >
                   <option value="">-- Chọn trạng thái mới --</option>
                   <option value="Đã_xem">Đã xem</option>
-                  <option value="Đang_xử_lý">Đang xử lý</option>
-                  <option value="Đã_xử_lý">Đã xử lý</option>
+                  <option value="Đã_trả_lời">Đã trả lời</option>
                 </select>
                 <button
                   onClick={() =>
