@@ -25,7 +25,6 @@ Hướng dẫn cài đặt và chạy dự án.
     ```bash
     pip install -r requirements.txt
     ```
-    *(Lưu ý: Nếu chưa có file `requirements.txt`, bạn cần tạo nó bằng cách chạy `pip freeze > requirements.txt` sau khi đã cài đặt các thư viện như Flask, mysql-connector-python, python-dotenv, Flask-CORS)*
 
 4.  Sao chép file `.env.example` (nếu có) thành `.env` và cấu hình các biến môi trường, đặc biệt là thông tin kết nối database.
     File `be/app.py` hiện đang sử dụng các biến môi trường:
